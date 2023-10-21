@@ -3,8 +3,11 @@ package me.sllly.transport.commands;
 import dev.splityosis.commandsystem.SYSCommand;
 import dev.splityosis.commandsystem.SYSCommandBranch;
 import me.sllly.transport.Transport;
-import me.sllly.transport.objects.TimedTeleportTask;
+import me.sllly.transport.commands.arguments.TeleportPadArgument;
+import me.sllly.transport.objects.TeleportPad;
 import me.sllly.transport.utils.Util;
+
+import java.util.Arrays;
 
 public class TransportCommandSystem extends SYSCommandBranch {
     public TransportCommandSystem(String... names) {
@@ -21,27 +24,52 @@ public class TransportCommandSystem extends SYSCommandBranch {
         SYSCommandBranch teleportBranch = new SYSCommandBranch("teleportpad");
         addBranch(teleportBranch);
 
-        teleportBranch.addCommand(new SYSCommand("off")
-                .setArguments()
+        teleportBranch.addCommand(new SYSCommand("pause")
+                .setArguments(new TeleportPadArgument())
                 .executes((sender, args) -> {
-                    if (TimedTeleportTask.on){
-                        TimedTeleportTask.on = false;
-                        Util.sendMessage(sender, "&aSet the teleportpad timer to &c&ldisabled.");
+                    TeleportPad teleportPad = TeleportPad.teleportPads.get(args[0]);
+                    if (teleportPad == null) {
+                        Util.sendMessage(sender, Arrays.asList("&cThere's a bug in the code!  Contact Charlllie/Sllly", "&cFailed to find TeleportPad"));
                         return;
                     }
-                    Util.sendMessage(sender, "&cThe timer is already off!");
+                    if (!teleportPad.isOn()){
+                        Util.sendMessage(sender, "&cThe teleport pad is already off!");
+                        return;
+                    }
+                    teleportPad.setOn(false);
+                    Util.sendMessage(sender, "&aSuccessfully stopped pad "+args[0]);
+                }));
+
+        teleportBranch.addCommand(new SYSCommand("unpause")
+                .setArguments(new TeleportPadArgument())
+                .executes((sender, args) -> {
+                    TeleportPad teleportPad = TeleportPad.teleportPads.get(args[0]);
+                    if (teleportPad == null) {
+                        Util.sendMessage(sender, Arrays.asList("&cThere's a bug in the code!  Contact Charlllie/Sllly", "&cFailed to find TeleportPad"));
+                        return;
+                    }
+                    if (teleportPad.isOn()){
+                        Util.sendMessage(sender, "&cThe teleport pad is already on!");
+                        return;
+                    }
+                    teleportPad.startFromSave();
+                    Util.sendMessage(sender, "&aSuccessfully unpaused pad "+args[0]);
                 }));
 
         teleportBranch.addCommand(new SYSCommand("start")
-                .setArguments()
+                .setArguments(new TeleportPadArgument())
                 .executes((sender, args) -> {
-                    if (!TimedTeleportTask.on){
-                        TimedTeleportTask.on = true;
-                        TimedTeleportTask.startTeleportTaskTimerFromMax();
-                        Util.sendMessage(sender, "&aSet the teleportpad timer to &c&ldisabled.");
+                    TeleportPad teleportPad = TeleportPad.teleportPads.get(args[0]);
+                    if (teleportPad == null) {
+                        Util.sendMessage(sender, Arrays.asList("&cThere's a bug in the code!  Contact Charlllie/Sllly", "&cFailed to find TeleportPad"));
                         return;
                     }
-                    Util.sendMessage(sender, "&cThe timer is already on!");
+                    if (teleportPad.isOn()){
+                        Util.sendMessage(sender, "&cThe teleport pad is already on!");
+                        return;
+                    }
+                    teleportPad.startFromMax();
+                    Util.sendMessage(sender, "&aSuccessfully started pad "+args[0]);
                 }));
     }
 }
