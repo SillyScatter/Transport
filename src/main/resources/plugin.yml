@@ -1,0 +1,4 @@
+name: Transport
+version: '${project.version}'
+main: me.sllly.transport.Transport
+api-version: 1.19
