@@ -1,4 +1,4 @@
-package me.sllly.transport.files;
+package me.sllly.transport.files.configs;
 
 import dev.splityosis.configsystem.configsystem.AnnotatedConfig;
 import dev.splityosis.configsystem.configsystem.ConfigField;

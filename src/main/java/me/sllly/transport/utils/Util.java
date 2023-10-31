@@ -3,13 +3,18 @@ package me.sllly.transport.utils;
 import dev.splityosis.configsystem.configsystem.actionsystem.ActionData;
 import dev.splityosis.configsystem.configsystem.actionsystem.Actions;
 import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -362,5 +367,13 @@ public class Util {
         matcher.appendTail(sb);
 
         return sb.toString().replaceAll("§([0-9a-fklmnorx])", "&$1");
+    }
+
+    public static BlockDisplay createBlockDisplay(BlockData data, Location location){
+        BlockDisplay display = location.getWorld().spawn(location, BlockDisplay.class, (blockDisplay -> {
+            //blockDisplay.setTransformation(new Transformation(new Vector3f(-0.5F,-0.5F,-0.5F), new Quaternionf(0F,0F,0F,1F), new Vector3f(1F,1F,1F), new Quaternionf(0F,0F,0F,1F)));
+            blockDisplay.setBlock(data);
+        }));
+        return display;
     }
 }

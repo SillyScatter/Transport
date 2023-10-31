@@ -2,6 +2,11 @@ package me.sllly.transport.objects;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Area {
 
@@ -63,5 +68,27 @@ public class Area {
         Location middleLocation = new Location(location1.getWorld(), x, y, z);
 
         return middleLocation;
+    }
+
+    public List<Block> getBlocksWithinArea(){
+        World world = cornerOne.getWorld();
+        List<Block> blocks = new ArrayList<>();
+
+        double x1 = Math.min(cornerOne.getX(), cornerTwo.getX());
+        double x2 = Math.max(cornerOne.getX(), cornerTwo.getX());
+        double y1 = Math.min(cornerOne.getY(), cornerTwo.getY());
+        double y2 = Math.max(cornerOne.getY(), cornerTwo.getY());
+        double z1 = Math.min(cornerOne.getZ(), cornerTwo.getZ());
+        double z2 = Math.max(cornerOne.getZ(), cornerTwo.getZ());
+
+        for (double x = x1; x <= x2; x++) {
+            for (double y = y1; y <= y2; y++) {
+                for (double z = z1; z <= z2; z++) {
+                    Location location = new Location(world, x, y, z);
+                    blocks.add(world.getBlockAt(location));
+                }
+            }
+        }
+        return blocks;
     }
 }
