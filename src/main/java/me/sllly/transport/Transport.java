@@ -10,10 +10,13 @@ import me.sllly.transport.files.logics.LiftDataMapLogic;
 import me.sllly.transport.files.logics.LocationBlockDataListLogic;
 import me.sllly.transport.files.logics.LocationListLogic;
 import me.sllly.transport.listeners.ActivateLiftListener;
+import me.sllly.transport.listeners.CancelFallDamageListener;
+import me.sllly.transport.listeners.LeaveLiftListener;
 import me.sllly.transport.objects.Lift;
 import me.sllly.transport.objects.LiftData;
 import me.sllly.transport.objects.TeleportPad;
 import me.sllly.transport.objects.lists.LocationBlockDataList;
+import me.sllly.transport.placeholders.TeleportPadPlaceholder;
 import me.sllly.transport.utils.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -59,20 +62,22 @@ public final class Transport extends JavaPlugin {
 
         //Register Listeners
         getServer().getPluginManager().registerEvents(new ActivateLiftListener(), this);
+        getServer().getPluginManager().registerEvents(new CancelFallDamageListener(), this);
+        getServer().getPluginManager().registerEvents(new LeaveLiftListener(), this);
 
         //Load Files
         liftDataFile = new LiftDataFile(getDataFolder(), "lift-data");
         liftDataFile.initialize();
         reloadPlugin();
+
+        //Placeholders
+        new TeleportPadPlaceholder().register();
     }
 
     @Override
     public void onDisable() {
         Util.log("&aSuccessfully saved lift data to file: "+liftDataFile.liftDataMap.size());
         liftDataFile.saveToFile();
-        for (Lift value : Lift.movingLifts.values()) {
-            value.liftFinished();
-        }
     }
 
     public void reloadPlugin(){

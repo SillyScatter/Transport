@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,5 +91,38 @@ public class Area {
             }
         }
         return blocks;
+    }
+
+    public void moveArea(double x, double y, double z){
+        cornerOne.setX(cornerOne.getX()+x);
+        cornerOne.setY(cornerOne.getY()+y);
+        cornerOne.setZ(cornerOne.getZ()+z);
+        cornerTwo.setX(cornerTwo.getX()+x);
+        cornerTwo.setY(cornerTwo.getY()+y);
+        cornerTwo.setZ(cornerTwo.getZ()+z);
+    }
+
+    public List<Entity> getEntitiesWithinArea(){
+        double width = Math.abs(cornerOne.getX()-cornerTwo.getX());
+        double height = Math.abs(cornerOne.getY()-cornerTwo.getY());
+        double length = Math.abs(cornerOne.getZ()-cornerTwo.getZ());
+        return new ArrayList<>(cornerOne.getWorld().getNearbyEntities(findMiddleLocation(cornerOne, cornerTwo), width, height, length));
+    }
+
+    public void adjustAreaFromBlocks() {
+        double x1 = Math.min(cornerOne.getX(), cornerTwo.getX());
+        double x2 = Math.max(cornerOne.getX(), cornerTwo.getX());
+        double y1 = Math.min(cornerOne.getY(), cornerTwo.getY());
+        double y2 = Math.max(cornerOne.getY(), cornerTwo.getY());
+        double z1 = Math.min(cornerOne.getZ(), cornerTwo.getZ());
+        double z2 = Math.max(cornerOne.getZ(), cornerTwo.getZ());
+
+        cornerOne.setX(x1);
+        cornerOne.setY(y1);
+        cornerOne.setZ(z1);
+
+        cornerTwo.setX(x2+0.99);
+        cornerTwo.setY(y2);
+        cornerTwo.setZ(z2+0.99);
     }
 }

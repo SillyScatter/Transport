@@ -56,7 +56,7 @@ public class LocationBlockDataListLogic extends ConfigTypeLogic<LocationBlockDat
             config.set(path+"."+count+".data.material", materialName);
             if (locationBlockData.getBlockData() instanceof Slab){
                 Slab slab = (Slab) locationBlockData.getBlockData();
-                config.set(path+"."+count+".data.slab-type", slab.getType());
+                config.set(path+"."+count+".data.slab-type", slab.getType().toString());
             }
         }
     }

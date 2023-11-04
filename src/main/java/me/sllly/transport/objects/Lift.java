@@ -10,6 +10,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -49,7 +50,10 @@ public class Lift {
 
     private List<Block> nonAirBlocks;
     private List<BlockDisplay> liftDisplayBlocks;
-    private Map<Player, Long> playerLongMap;
+
+    private List<Player> playersThatJoined;
+
+    private List<Player> playersThatLeft;
     private Map<Player, BlockDisplay> playerChairMap;
 
     public Lift(String name, World world, int cornerOneX, int cornerOneZ, int cornerTwoX, int cornerTwoZ, int bottomYDown, int bottomYTop, int height, int seconds, LocationList buttonLocations, LiftData liftData) {
@@ -70,6 +74,8 @@ public class Lift {
         this.stepMagnitude = (bottomYTop-bottomYDown)/(seconds*20.0);
 
         this.liftData = liftData;
+
+        performCrashStability();
     }
 
     public void startLift(){
@@ -80,14 +86,22 @@ public class Lift {
         LocationBlockDataList locationBlockDataList = LocationBlockDataList.getLocationBlockDataList(blocks);
         liftData.setLocationBlockDataList(locationBlockDataList);
 
+        //Players
+        playerChairMap = new HashMap<>();
+        playersThatJoined = new ArrayList<>();
+
         //Work Out if we're boutta be moving up or down
         if (getLiftData().isDockedDown()){
             getLiftData().setDockedDown(false);
             setMovingUp(true);
+            currentLiftArea = new Area(world.getName(), cornerOneX, bottomYDown, cornerOneZ, cornerTwoX, bottomYDown+height, cornerTwoZ);
+            currentLiftArea.adjustAreaFromBlocks();
         }
         if (getLiftData().isDockedUp()){
             getLiftData().setDockedUp(false);
             setMovingDown(true);
+            currentLiftArea = new Area(world.getName(), cornerOneX, bottomYTop, cornerOneZ, cornerTwoX, bottomYTop+height, cornerTwoZ);
+            currentLiftArea.adjustAreaFromBlocks();
         }
         if(movingDown){
             step = stepMagnitude * -1;
@@ -119,8 +133,33 @@ public class Lift {
                 for (BlockDisplay liftDisplayBlock : liftDisplayBlocks) {
                     liftDisplayBlock.teleport(liftDisplayBlock.getLocation().add(0, step, 0));
                 }
+                for (Entity entity : currentLiftArea.getEntitiesWithinArea()) {
+                    if (entity instanceof Player){
+                        Player player = (Player) entity;
+                        if (!playersThatJoined.contains(player)){
+                            if (currentLiftArea.withinArea(player.getLocation())){
+                                startMovingPlayer(player);
+                            }
+                        }
+                    }
+                }
+                for (Player player : playerChairMap.keySet()) {
+                    BlockDisplay blockDisplay = playerChairMap.get(player);
+                    blockDisplay.removePassenger(player);
+                    blockDisplay.teleport( blockDisplay.getLocation().add(0,step,0));
+                    blockDisplay.addPassenger(player);
+                }
+
+                currentLiftArea.moveArea(0,step,0);
             }
         }.runTaskTimer(Transport.plugin, 0, 1);
+    }
+
+    public void startMovingPlayer(Player player){
+        playersThatJoined.add(player);
+        BlockDisplay blockDisplay = Util.createBlockDisplay(Material.AIR.createBlockData(), player.getLocation());
+        playerChairMap.put(player, blockDisplay);
+        blockDisplay.addPassenger(player);
     }
 
     public void liftFinished(){
@@ -138,6 +177,22 @@ public class Lift {
         liftDisplayBlocks.clear();
         transformIntoBlocks();
         movingLifts.remove(name);
+
+        List<Block> blocks = totalLiftArea.getBlocksWithinArea();
+        setNonAirBlocks(blocks);
+        LocationBlockDataList locationBlockDataList = LocationBlockDataList.getLocationBlockDataList(blocks);
+        liftData.setLocationBlockDataList(locationBlockDataList);
+
+        for (Player player : playerChairMap.keySet()) {
+            BlockDisplay blockDisplay = playerChairMap.get(player);
+            blockDisplay.removePassenger(player);
+            blockDisplay.remove();
+            player.teleport(player.getLocation().add(0,0.5,0));
+        }
+
+        playerChairMap.clear();
+        playersThatJoined.clear();
+
         Transport.plugin.liftDataFile.liftDataMap.put(name, liftData);
     }
 
@@ -200,8 +255,33 @@ public class Lift {
         this.nonAirBlocks = nonAirBlocks;
     }
 
-    public void pasteLift(){
+    public void performCrashStability(){
+        for (Block block : totalLiftArea.getBlocksWithinArea()) {
+            if (block!=null && block.getType()!=Material.AIR){
+                block.setType(Material.AIR);
+            }
+        }
 
+        int lowestY = 400;
+        LocationBlockDataList locationBlockDataList = liftData.getLocationBlockDataList();
+        for (LocationBlockData locationBlockData : locationBlockDataList) {
+            if (locationBlockData.getLocation().getY() < lowestY){
+                lowestY = (int) Math.floor(locationBlockData.getLocation().getY());
+            }
+            if (locationBlockData.getLocation().getBlock().getType() != locationBlockData.getBlockData().getMaterial()){
+                locationBlockData.getLocation().getBlock().setBlockData(locationBlockData.getBlockData());
+            }
+        }
+        int distanceFromLowestYToBottomYDown = Math.abs(lowestY-bottomYDown);
+        int distanceFromLowestYToBottomYTop = Math.abs(lowestY-bottomYTop);
+
+        if (distanceFromLowestYToBottomYDown < distanceFromLowestYToBottomYTop){
+            liftData.setDockedDown(true);
+            liftData.setDockedUp(false);
+        }else{
+            liftData.setDockedDown(false);
+            liftData.setDockedUp(true);
+        }
     }
 
     public String getName() {
@@ -348,14 +428,6 @@ public class Lift {
         this.liftDisplayBlocks = liftDisplayBlocks;
     }
 
-    public Map<Player, Long> getPlayerLongMap() {
-        return playerLongMap;
-    }
-
-    public void setPlayerLongMap(Map<Player, Long> playerLongMap) {
-        this.playerLongMap = playerLongMap;
-    }
-
     public Map<Player, BlockDisplay> getPlayerChairMap() {
         return playerChairMap;
     }
@@ -382,5 +454,13 @@ public class Lift {
 
     public List<Block> getNonAirBlocks() {
         return nonAirBlocks;
+    }
+
+    public List<Player> getPlayersThatJoined() {
+        return playersThatJoined;
+    }
+
+    public void setPlayersThatJoined(List<Player> playersThatJoined) {
+        this.playersThatJoined = playersThatJoined;
     }
 }
